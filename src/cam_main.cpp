@@ -20,6 +20,7 @@ int main()
     for (auto const &camera : cm->cameras())
         std::cout << camera->id() << std::endl;
 
+    // Create and aquire camera
     auto cameras = cm->cameras();
     for (auto const &camera : cameras)
         std::cout << camera->id() << std::endl;
@@ -34,17 +35,24 @@ int main()
 
     auto camera = cm->get(cameraId);
     // camera = cm->get('/base/soc/i2c0mux/i2c@1/ov5647@36');
-    camera->acquire();
+    camera->acquire(); // Requests lock
 
     // Configure the camera
     std::unique_ptr<CameraConfiguration> config = camera->generateConfiguration( { StreamRole::Viewfinder } );
-
-    // StreamConfiguration &streamConfig = config->at(0);
     StreamConfiguration &streamConfig = config->at(0);
     std::cout << "Default viewfinder configuration is: " << streamConfig.toString() << std::endl;
 
-    FrameBufferAllocator *allocator = new FrameBufferAllocator(camera);
+    // Change the configuration
+    streamConfig.size.width = 640;
+    streamConfig.size.height = 480;
 
+    // Make sure the new config works, if not, auto-magically create one that should work
+    config->validate();
+    std::cout << "Validated viewfinder configuration is: " << streamConfig.toString() << std::endl;
+    camera->configure(config.get());
+
+    // Allocate FrameBuffers
+    FrameBufferAllocator *allocator = new FrameBufferAllocator(camera);
     for (StreamConfiguration &cfg : *config) {
         int ret = allocator->allocate(cfg.stream());
         if (ret < 0) {
@@ -81,8 +89,8 @@ int main()
     }
 
     camera->stop();
-    // allocator->free(stream);
-    // delete allocator;
+    allocator->free(stream);
+    delete allocator;
     camera->release();
     camera.reset();
     cm->stop();
