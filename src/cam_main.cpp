@@ -37,8 +37,8 @@ static void requestComplete(Request *request)
         std::cout << std::endl;
     }
 
-    // request->reuse(Request::ReuseBuffers);
-    // camera->queueRequest(request);
+    request->reuse(Request::ReuseBuffers);
+    camera->queueRequest(request);
 }
 
 /* MAIN */
@@ -64,7 +64,7 @@ int main()
     
     std::string cameraId = cameras[0]->id();
 
-    auto camera = cm->get(cameraId);
+    camera = cm->get(cameraId);
     // camera = cm->get('/base/soc/i2c0mux/i2c@1/ov5647@36');
     camera->acquire(); // Requests lock
 
@@ -76,6 +76,7 @@ int main()
     // Change the configuration
     streamConfig.size.width = 640;
     streamConfig.size.height = 480;
+    streamConfig.bufferCount = 2;
 
     // Make sure the new config works, if not, auto-magically create one that should work
     config->validate();
@@ -121,13 +122,21 @@ int main()
 
     // Event Handling
     camera->requestCompleted.connect(requestComplete);
+    camera->start();
+    for (std::unique_ptr<Request> &request : requests)
+        camera->queueRequest(request.get());
+    // Wait for X milli-seconds to just see what we get
+    std::this_thread::sleep_for(3000ms);
 
     camera->stop();
+    camera->requestCompleted.disconnect();
     allocator->free(stream);
     delete allocator;
     camera->release();
     camera.reset();
     cm->stop();
 
+    std::cout << "About to return and exit" << std::endl;
     return 0;
+    std::cout << "This should not print" << std::endl;
 }
