@@ -14,7 +14,31 @@ static std::shared_ptr<Camera> camera;
 /* EVENT HANDLER */
 static void requestComplete(Request *request)
 {
-    // Code to follow
+    // First check if the request has completed succesfully
+    // and wasn't cancelled
+    if (request->status() == Request::RequestCancelled)
+        return;
+
+    const std::map<const Stream *, FrameBuffer *> &buffers = request->buffers();
+
+    for (auto bufferPair : buffers) {
+        FrameBuffer *buffer = bufferPair.second;
+        const FrameMetadata &metadata = buffer->metadata();
+    }
+
+    std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence << " bytesused: ";
+
+    unsigned int nplane = 0;
+    for (const FrameMetadata::Plane &plane : metadata.planes())
+    {
+        std::cout << plane.bytesused;
+        if (++nplane < metadata.planes().size()) std::cout << "/";
+    }
+
+    std::cout << std::endl;
+
+    // request->reuse(Request::ReuseBuffers);
+    // camera->queueRequest(request);
 }
 
 /* MAIN */
