@@ -121,6 +121,11 @@ int main()
 
     // Event Handling
     camera->requestCompleted.connect(requestComplete);
+    camera->start();
+    for (std::unique_ptr<Request> &request : requests)
+        camera->queueRequest(request.get());
+    // Wait for X milli-seconds to just see what we get
+    std::this_thread::sleep_for(1000ms);
 
     camera->stop();
     allocator->free(stream);
