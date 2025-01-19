@@ -11,6 +11,13 @@ using namespace std::chrono_literals;
 // Global 
 static std::shared_ptr<Camera> camera;
 
+/* EVENT HANDLER */
+static void requestComplete(Request *request)
+{
+    // Code to follow
+}
+
+/* MAIN */
 int main()
 {
     // Code to follow
@@ -87,6 +94,9 @@ int main()
 
         requests.push_back(std::move(request));
     }
+
+    // Event Handling
+    camera->requestCompleted.connect(requestComplete);
 
     camera->stop();
     allocator->free(stream);
