@@ -130,13 +130,12 @@ int main()
 
     camera->stop();
     camera->requestCompleted.disconnect();
+    requests.clear();
     allocator->free(stream);
     delete allocator;
     camera->release();
     camera.reset();
     cm->stop();
 
-    std::cout << "About to return and exit" << std::endl;
     return 0;
-    std::cout << "This should not print" << std::endl;
 }
