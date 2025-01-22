@@ -1,3 +1,4 @@
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <memory>
@@ -74,14 +75,18 @@ public:
 
             std::cout << std::endl;
         }
-
-        request->reuse(Request::ReuseBuffers);
+        
         this->request_ = std::shared_ptr<Request>(request);
-        // camera->queueRequest(request);
     }
 
     void getFrames()
     {
+        camera->queueRequest(this->request_.get());
+    }
+
+    void requestFrames()
+    {
+        this->request_->reuse(Request::ReuseBuffers);
         camera->queueRequest(this->request_.get());
     }
 };
@@ -166,7 +171,11 @@ int main()
     }
 
     // Event Handling
-    camera->requestCompleted.connect(requestComplete);
+    FrameHandler f_handler = FrameHandler();
+    using namespace std::placeholders;
+    std::function<void(Request*)> cb_f_handler = std::bind(&FrameHandler::requestComplete, &f_handler, _1);
+    camera->requestCompleted.connect(&f_handler, cb_f_handler);
+    //camera->requestCompleted.connect(&f_handler,[=](Request* r){return f_handler.requestComplete(r);});
     camera->start();
     for (std::unique_ptr<Request> &request : requests)
         camera->queueRequest(request.get());
