@@ -34,5 +34,8 @@
 # Build directory
 build/*
 
+# Local file
+src/REF_cam_main.cpp
+
 # VSCode (for now)
 .vscode/*

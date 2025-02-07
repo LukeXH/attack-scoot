@@ -1,7 +1,10 @@
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <sys/mman.h>
 #include <thread>
+#include <vector>
 
 #include <libcamera/libcamera.h>
 
@@ -32,6 +35,36 @@ static void requestComplete(Request *request)
         {
             std::cout << plane.bytesused;
             if (++nplane < metadata.planes().size()) std::cout << "/";
+        }
+
+        // Now give information about the planes
+        for (const FrameBuffer::Plane &plane: buffer->planes() )
+        {
+            std::cout << "\nThere is at least one plane of length: " << plane.length << std::endl;
+            void *memory = mmap(NULL, plane.length, PROT_READ | PROT_WRITE, MAP_SHARED, plane.fd.get(), 0);
+            libcamera::Span<uint8_t> image_raw(static_cast<uint8_t *>(memory), plane.length);
+            for (size_t i = 0; i < 5; i++)
+            {
+                std::cout << image_raw.data() << std::endl;
+            }
+            /* In theory, should be able to map to cv matrics via:*/
+            // cv::Mat image(height, width, CV_8UC1, (uint8_t *)(image_raw.data()));
+
+            //std::unique_ptr<Image> image =
+            //Image::fromFrameBuffer(buffer, Image::MapMode::ReadOnly);
+            //assert(image != nullptr);
+            // std::cout << "Open the stream" << std::endl;
+            // std::ifstream im(plane.dmabuf());
+            // std::cout << "Determine the file length" << std::endl;
+            // im.seekg(0, std::ios_base::end);
+            // std::size_t size=im.tellg();
+            // im.seekg(0, std::ios_base::beg);
+            // std::cout << "Create a vector to store the data" << std::endl;
+            // std::vector<float> v(size/sizeof(float));
+            // std::cout << "Load the data" << std::endl;
+            // im.read((char*) &v[0], size);
+            // std::cout << "Close the file" << std::endl;
+            // im.close();
         }
 
         std::cout << std::endl;
@@ -76,6 +109,7 @@ int main()
     // Change the configuration
     streamConfig.size.width = 640;
     streamConfig.size.height = 480;
+    streamConfig.bufferCount = 2;
 
     // Make sure the new config works, if not, auto-magically create one that should work
     config->validate();
