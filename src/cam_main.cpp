@@ -45,6 +45,7 @@ static void requestComplete(Request *request)
             std::cout << "\nThere is at least one plane of length: " << plane.length << std::endl;
             void *memory = mmap(NULL, plane.length, PROT_READ | PROT_WRITE, MAP_SHARED, plane.fd.get(), 0);
             libcamera::Span<uint8_t> image_raw(static_cast<uint8_t *>(memory), plane.length);
+	    Image8b image(480, 640, IM_8UC1, (uint8_t*)(image_raw.data()));
             for (size_t i = 0; i < 5; i++)
             {
                 std::cout << image_raw.data() << std::endl;
