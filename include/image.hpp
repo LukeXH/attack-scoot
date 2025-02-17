@@ -114,8 +114,12 @@ public:
     ImStep step;
 };
 
+Image8b::Image8b()
+    : im_type(0), dims(0), rows(-1), cols(-1)
+{}
+
 Image8b::Image8b(int _rows, int _cols, int _type, void* _data, size_t _step)
-    : dims(2), im_type(_type), rows(_rows), cols(_cols), data((uchar*)_data), 
+    : im_type(_type), dims(2), rows(_rows), cols(_cols), data((uchar*)_data), 
     datastart((uchar*)_data), dataend(0), datalimit(0)
 {
     assert(data != NULL);

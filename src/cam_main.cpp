@@ -8,6 +8,8 @@
 
 #include <libcamera/libcamera.h>
 
+#include "include/image.hpp"
+
 using namespace libcamera;
 using namespace std::chrono_literals;
 
@@ -77,6 +79,8 @@ static void requestComplete(Request *request)
 /* MAIN */
 int main()
 {
+    Image8b im;
+
     // Code to follow
     std::unique_ptr<CameraManager> cm = std::make_unique<CameraManager>();
     cm->start();
