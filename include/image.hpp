@@ -1,3 +1,5 @@
+#ifndef IMAGE_H
+#define IMAGE_H
 /**
  * Class to store and manipulate an Image8b, cribbed from openCV
  */
@@ -158,3 +160,5 @@ uchar& Image8b::at(int row, int col)
     // assert(CV_ELEM_SIZE1(traits::Depth<_Tp>::value) == elemSize1()); // TODO Implement this check
     return ((uchar*)(data + step.p[0] * row))[col];
 }
+
+#endif /* IMAGE_H*/

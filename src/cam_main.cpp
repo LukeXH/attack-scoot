@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <string>
 #include <sys/mman.h>
 #include <thread>
 #include <vector>
@@ -40,15 +41,29 @@ static void requestComplete(Request *request)
         }
 
         // Now give information about the planes
+        size_t im_cnt = 0;
         for (const FrameBuffer::Plane &plane: buffer->planes() )
         {
             std::cout << "\nThere is at least one plane of length: " << plane.length << std::endl;
             void *memory = mmap(NULL, plane.length, PROT_READ | PROT_WRITE, MAP_SHARED, plane.fd.get(), 0);
             libcamera::Span<uint8_t> image_raw(static_cast<uint8_t *>(memory), plane.length);
-	    Image8b image(480, 640, IM_8UC1, (uint8_t*)(image_raw.data()));
+            Image8b image(480, 640, IM_8UC1, (uint8_t*)(image_raw.data()));
             for (size_t i = 0; i < 5; i++)
             {
                 std::cout << image_raw.data() << std::endl;
+            }
+
+            // Save as CSV
+            std::ofstream im_file;
+            std::string im_file_name = "/home/scoot/logs/imlog";
+            im_file.open(im_file.append(std::to_string(im_cnt++)).append(".log"))
+            for (size_t i=0; i < image.rows; i++)
+            {
+                for (size_t j=0; j < image.cols; j++)
+                {
+                    im_file << to_string(image.at(i,j)) << ","
+                }
+                im_file << "\n";
             }
             /* In theory, should be able to map to cv matrics via:*/
             // cv::Mat image(height, width, CV_8UC1, (uint8_t *)(image_raw.data()));
