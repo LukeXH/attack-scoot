@@ -56,15 +56,16 @@ static void requestComplete(Request *request)
             // Save as CSV
             std::ofstream im_file;
             std::string im_file_name = "/home/scoot/logs/imlog";
-            im_file.open(im_file.append(std::to_string(im_cnt++)).append(".log"))
+            im_file.open(im_file_name.append(std::to_string(im_cnt++)).append(".log"));
             for (size_t i=0; i < image.rows; i++)
             {
                 for (size_t j=0; j < image.cols; j++)
                 {
-                    im_file << to_string(image.at(i,j)) << ","
+                    im_file << std::to_string(image.at(i,j)) << ",";
                 }
                 im_file << "\n";
             }
+            im_file.close();
             /* In theory, should be able to map to cv matrics via:*/
             // cv::Mat image(height, width, CV_8UC1, (uint8_t *)(image_raw.data()));
 
