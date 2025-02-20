@@ -31,7 +31,7 @@ static void requestComplete(Request *request)
 
     for (auto bufferPair : buffers) {
         FrameBuffer *buffer = bufferPair.second;
-        g_fbuffer1 = buffer;
+        g_fbuffer1 = std::shared_ptr<FrameBuffer>(buffer);
         const FrameMetadata &metadata = buffer->metadata();
 
         std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence << " bytesused: ";
@@ -184,8 +184,15 @@ int main()
     // Wait for X milli-seconds to just see what we get
     std::this_thread::sleep_for(1000ms);
 
+    std::cout << "here 1" << std::endl;
     camera->stop();
+    std::cout << "here 2" << std::endl;
+    g_fbuffer0.reset();
+    std::cout << "here 3" << std::endl;
+    g_fbuffer1.reset();
+    std::cout << "here 4" << std::endl;
     allocator->free(stream);
+    std::cout << "here 5" << std::endl;
     delete allocator;
     camera->release();
     camera.reset();
