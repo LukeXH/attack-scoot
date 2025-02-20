@@ -171,9 +171,9 @@ int main()
     }
 
     // Event Handling
-    FrameHandler f_handler = FrameHandler();
+    FrameHandler* f_handler = new FrameHandler();
     using namespace std::placeholders;
-    std::function<void(Request*)> cb_f_handler = std::bind(&FrameHandler::requestComplete, &f_handler, _1);
+    std::function<void(Request*)> cb_f_handler = std::bind(&FrameHandler::requestComplete, f_handler, _1);
     camera->requestCompleted.connect(&f_handler, cb_f_handler);
     //camera->requestCompleted.connect(&f_handler,[=](Request* r){return f_handler.requestComplete(r);});
     camera->start();
@@ -184,7 +184,8 @@ int main()
 
     camera->stop();
     camera->requestCompleted.disconnect();
-    requests.clear();
+    delete f_handler;
+    //requests.clear();
     allocator->free(stream);
     delete allocator;
     camera->release();
