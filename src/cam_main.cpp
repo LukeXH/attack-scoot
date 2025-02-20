@@ -16,8 +16,8 @@ using namespace std::chrono_literals;
 
 // Globals
 static std::shared_ptr<Camera> camera;
-static std::shared_ptr<Image8b> image_0;
-static std::shared_ptr<Image8b> image_1;
+static std::shared_ptr<FrameBuffer> g_fbuffer0;
+static std::shared_ptr<FrameBuffer> g_fbuffer1;
 
 /* EVENT HANDLER */
 static void requestComplete(Request *request)
@@ -31,6 +31,7 @@ static void requestComplete(Request *request)
 
     for (auto bufferPair : buffers) {
         FrameBuffer *buffer = bufferPair.second;
+        g_fbuffer1 = buffer;
         const FrameMetadata &metadata = buffer->metadata();
 
         std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence << " bytesused: ";
@@ -42,21 +43,6 @@ static void requestComplete(Request *request)
             if (++nplane < metadata.planes().size()) std::cout << "/";
         }
 
-        // Explicitly handle the two buffer frames and put them in the global variable
-        for (size_t i_im = 0; i_im < 2; i_im++)
-        {
-            const FrameBuffer::Plane &plane = buffer->planes()[i_im];
-            void *memory = mmap(NULL, plane.length, PROT_READ | PROT_WRITE, MAP_SHARED, plane.fd.get(), 0);
-            libcamera::Span<uint8_t> image_raw(static_cast<uint8_t *>(memory), plane.length);
-            if (i_im == 0)
-            {
-                image_0 = std::make_shared<Image8b>(480, 640*4, IM_8UC1, (uint8_t*)(image_raw.data()));
-            }
-            else if (i_im == 1)
-            {
-                image_1 = std::make_shared<Image8b>(480, 640*4, IM_8UC1, (uint8_t*)(image_raw.data()));
-            }
-        }
         // const FrameBuffer::Plane &im0_plane = buffer->planes()[0];
         // const FrameBuffer::Plane &im1_plane = buffer->planes()[1];
 
