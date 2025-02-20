@@ -192,5 +192,5 @@ int main()
     camera.reset();
     cm->stop();
 
-    return 0;
+    return 0;  // We are segfaulting on exit, cuz requests has already been deleted, don't know by what...
 }
