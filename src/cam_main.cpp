@@ -16,7 +16,7 @@ using namespace libcamera;
 using namespace std::chrono_literals;
 
 #ifndef DEBUG_FLAG
-    #define DEBUG_FLAG false
+    #define DEBUG_FLAG true
 #endif
 
 // Globals
@@ -157,7 +157,7 @@ int main()
         camera->queueRequest(request.get());
 
 
-    for(size_t i_frame_grabs = 0; i_frame_grabs < 40; i_frame_grabs++)
+    for(size_t i_frame_grabs = 0; i_frame_grabs < 3; i_frame_grabs++)
     {
         for(size_t i_stall = 0; i_stall < 20; i_stall++)
         {
@@ -192,7 +192,8 @@ int main()
                     std::cout << "\nThere is at least one plane of length: " << plane.length << std::endl;
                     void *memory = mmap(NULL, plane.length, PROT_READ | PROT_WRITE, MAP_SHARED, plane.fd.get(), 0);
                     libcamera::Span<uint8_t> image_raw(static_cast<uint8_t *>(memory), plane.length);
-                    image_vec.emplace_back(480, 640*4, IM_8UC1, (uint8_t*)(image_raw.data()));
+                    image_vec.emplace_back(streamConfig.size.height, streamConfig.size.width*4, IM_8UC1, (uint8_t*)(image_raw.data())); // This formating works, cuz we have 4 channels, RGBA
+                    image_vec.emplace_back(streamConfig.size.height, streamConfig.size.width, IM_8UC4, (uint8_t*)(image_raw.data())); //
                     // Image8b image(480, 640*4, IM_8UC1, (uint8_t*)(image_raw.data())); // This formating works, cuz we have 4 channels, RGBA
                 }
             }
@@ -200,16 +201,17 @@ int main()
             // Save as CSV
             if (DEBUG_FLAG)
             {
-                for(int i_im = 0; i_im < image_vec.size(); ++i_im)
+                for(size_t i_im = 0; i_im < image_vec.size(); ++i_im)
                 {
                     std::ofstream im_file;
                     std::string im_file_name = "/home/scoot/logs/imlog";
                     im_file.open(im_file_name.append(std::to_string(10*i_frame_grabs + i_im)).append(".log"));
-                    for (int i=0; i < image_vec[i_im].rows; i++)
+                    for (int i=0; i < image_vec[i_im].rows; i++) // Row
                     {
-                        for (int j=0; j < image_vec.back().cols; j++)
+                        for (int j=0; j < image_vec.back().cols; j++) // Column
                         {
-                            im_file << std::to_string(image_vec[i_im].at(i,j)) << ",";
+                            for(int k = 0; k < 4; ++k) // Channel
+                                im_file << std::to_string(image_vec[i_im].at(i,j)[k]) << ",";
                         }
                         im_file << "\n";
                     }

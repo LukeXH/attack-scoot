@@ -25,6 +25,7 @@ typedef unsigned char uchar;
 #define MAKETYPE(depth,cn) (MAT_DEPTH(depth) + (((cn)-1) << CN_SHIFT)) // CV_MAKETYPE
 #define IM_8UC1 MAKETYPE(IM_8U,1) // CV_8UC1
 #define IM_8UC3 MAKETYPE(IM_8U,3) // CV_8UC3
+#define IM_8UC4 MAKETYPE(IM_8U,4)
 
 ///////////////////////////// ImStep ////////////////////////////
 struct ImStep
@@ -94,7 +95,8 @@ public:
     @param col Index along the dimension 1
     */
 //    template<typename _Tp> _Tp& at(int row, int col);
-   uchar& at(int row, int col);
+    uchar& at(int row, int col);
+    // uchar& at(int row, int col, int channel);
 
     enum { MAGIC_VAL  = 0x42FF0000, AUTO_STEP = 0}; //, CONTINUOUS_FLAG = CV_MAT_CONT_FLAG, SUBMATRIX_FLAG = CV_SUBMAT_FLAG };
     enum { MAGIC_MASK = 0xFFFF0000, TYPE_MASK = 0x00000FFF, DEPTH_MASK = 7 };
@@ -161,4 +163,11 @@ uchar& Image8b::at(int row, int col)
     return ((uchar*)(data + step.p[0] * row))[col];
 }
 
-#endif /* IMAGE_H*/
+// inline
+// uchar& Image8b::at(int row, int col, int channel)
+// {
+//     assert(channel < MAT_CN(im_type));
+//     return at(row,col)[channel];
+// }
+
+#endif /* IMAGE_H */
