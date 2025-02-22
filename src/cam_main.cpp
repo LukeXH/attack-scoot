@@ -19,18 +19,18 @@ using namespace std::chrono_literals;
 static std::shared_ptr<Camera> camera;
 static std::shared_ptr<FrameBuffer> g_fbuffer0;
 static std::shared_ptr<FrameBuffer> g_fbuffer1;
-static bool request_ready;
+// static bool request_ready;
 
-/* EVENT HANDLER */
-static void fastRequestComplete(Request *request)
-{
-    // First check if the request has completed succesfully
-    // and wasn't cancelled
-    if (request->status() == Request::RequestCancelled)
-        return;
+// /* EVENT HANDLER */
+// static void fastRequestComplete(Request *request)
+// {
+//     // First check if the request has completed succesfully
+//     // and wasn't cancelled
+//     if (request->status() == Request::RequestCancelled)
+//         return;
 
-    request_ready = true;
-}
+//     request_ready = true;
+// }
 
 static void requestComplete(Request *request)
 {
@@ -106,6 +106,46 @@ static void requestComplete(Request *request)
     // camera->queueRequest(request);
 }
 
+class RequestFlag
+{
+private:
+    bool request_ready;
+public:
+    std::function<void(Request*)> cb_handler;
+
+    // void requestComplete(Request *request); // Prototype
+
+    RequestFlag() {
+        this->request_ready = false;
+        using namespace std::placeholders;
+        cb_handler = std::bind(&RequestFlag::requestComplete, this, _1);
+    }
+    ~RequestFlag() = default;
+
+    void requestComplete(Request *request)
+    {
+        // Binding function
+        // First check if the request has completed succesfully
+        // and wasn't cancelled
+        if (request->status() == Request::RequestCancelled)
+            return;
+
+        if(!this->request_ready) // Only flip if we are waiting for a request to be ready
+            this->request_ready = true;
+    }
+
+    bool ready() const
+    {
+        return this->request_ready;
+    }
+
+    void reset()
+    {
+        this->request_ready = false;
+    }
+};
+
+
 class FrameHandler
 {
     /**
@@ -135,7 +175,6 @@ public:
 int main()
 {
     Image8b im;
-    request_ready = false;
 
     // Code to follow
     std::unique_ptr<CameraManager> cm = std::make_unique<CameraManager>();
@@ -219,8 +258,10 @@ int main()
     // std::function<void(Request*)> cb_f_handler = std::bind(&FrameHandler::requestComplete, f_handler, _1);
     // camera->requestCompleted.connect(&f_handler, cb_f_handler);
 
-    camera->requestCompleted.connect(fastRequestComplete);
+    RequestFlag req_flag = RequestFlag();
+    camera->requestCompleted.connect(&req_flag, req_flag.cb_handler);
 
+    // camera->requestCompleted.connect(fastRequestComplete);
     // camera->requestCompleted.connect(requestComplete);
 
     camera->start();
@@ -230,15 +271,16 @@ int main()
 
     for(size_t i_stall = 0; i_stall < 20; i_stall++)
     {
-        if(request_ready)
+        if(req_flag.ready())
             break;
         std::this_thread::sleep_for(100ms);
     }
 
-    if(request_ready)
+    if(req_flag.ready())
     {
         std::cout << "We handled the requests!" << std::endl;
-        request_ready = false; // Clear flag
+        req_flag.reset();
+        // request_ready = false; // Clear flag
     }
     else
     {
