@@ -21,82 +21,6 @@ using namespace std::chrono_literals;
 
 // Globals
 static std::shared_ptr<Camera> camera;
-static std::shared_ptr<FrameBuffer> g_fbuffer0;
-static std::shared_ptr<FrameBuffer> g_fbuffer1;
-
-static void requestComplete(Request *request)
-{
-    // First check if the request has completed succesfully
-    // and wasn't cancelled
-    if (request->status() == Request::RequestCancelled)
-        return;
-
-    const std::map<const Stream *, FrameBuffer *> &buffers = request->buffers();
-
-    for (auto bufferPair : buffers) {
-        FrameBuffer *buffer = bufferPair.second;
-        const FrameMetadata &metadata = buffer->metadata();
-
-        std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence << " bytesused: ";
-
-        unsigned int nplane = 0;
-        for (const FrameMetadata::Plane &plane : metadata.planes())
-        {
-            std::cout << plane.bytesused;
-            if (++nplane < metadata.planes().size()) std::cout << "/";
-        }
-
-        // const FrameBuffer::Plane &im0_plane = buffer->planes()[0];
-        // const FrameBuffer::Plane &im1_plane = buffer->planes()[1];
-
-        // Now give information about the planes
-        size_t im_cnt = 0;
-        for (const FrameBuffer::Plane &plane: buffer->planes() )
-        {
-            std::cout << "\nThere is at least one plane of length: " << plane.length << std::endl;
-            void *memory = mmap(NULL, plane.length, PROT_READ | PROT_WRITE, MAP_SHARED, plane.fd.get(), 0);
-            libcamera::Span<uint8_t> image_raw(static_cast<uint8_t *>(memory), plane.length);
-            Image8b image(480, 640*4, IM_8UC1, (uint8_t*)(image_raw.data())); // This formating works, cuz we have 4 channels, RGBA
-
-            // // Save as CSV
-            // std::ofstream im_file;
-            // std::string im_file_name = "/home/scoot/logs/imlog";
-            // im_file.open(im_file_name.append(std::to_string(im_cnt++)).append(".log"));
-            // for (size_t i=0; i < image.rows; i++)
-            // {
-            //     for (size_t j=0; j < image.cols; j++)
-            //     {
-            //         im_file << std::to_string(image.at(i,j)) << ",";
-            //     }
-            //     im_file << "\n";
-            // }
-            // im_file.close();
-            /* In theory, should be able to map to cv matrics via:*/
-            // cv::Mat image(height, width, CV_8UC1, (uint8_t *)(image_raw.data()));
-
-            //std::unique_ptr<Image> image =
-            //Image::fromFrameBuffer(buffer, Image::MapMode::ReadOnly);
-            //assert(image != nullptr);
-            // std::cout << "Open the stream" << std::endl;
-            // std::ifstream im(plane.dmabuf());
-            // std::cout << "Determine the file length" << std::endl;
-            // im.seekg(0, std::ios_base::end);
-            // std::size_t size=im.tellg();
-            // im.seekg(0, std::ios_base::beg);
-            // std::cout << "Create a vector to store the data" << std::endl;
-            // std::vector<float> v(size/sizeof(float));
-            // std::cout << "Load the data" << std::endl;
-            // im.read((char*) &v[0], size);
-            // std::cout << "Close the file" << std::endl;
-            // im.close();
-        }
-
-        std::cout << std::endl;
-    }
-
-    // request->reuse(Request::ReuseBuffers);
-    // camera->queueRequest(request);
-}
 
 class RequestFlag
 {
@@ -225,16 +149,8 @@ int main()
     }
 
     // Event Handling
-    // FrameHandler* f_handler = new FrameHandler();
-    // using namespace std::placeholders;
-    // std::function<void(Request*)> cb_f_handler = std::bind(&FrameHandler::requestComplete, f_handler, _1);
-    // camera->requestCompleted.connect(&f_handler, cb_f_handler);
-
     RequestFlag req_flag = RequestFlag(streamConfig.bufferCount);
     camera->requestCompleted.connect(&req_flag, req_flag.cb_handler);
-
-    // camera->requestCompleted.connect(fastRequestComplete);
-    // camera->requestCompleted.connect(requestComplete);
 
     camera->start();
     for (std::unique_ptr<Request> &request : requests)
@@ -315,23 +231,16 @@ int main()
             break;
         }
     }
-    
-    // // Wait for X milli-seconds to just see what we get
-    // std::this_thread::sleep_for(1000ms);
 
-    std::cout << "here 1" << std::endl;
     camera->stop();
-    std::cout << "here 2" << std::endl;
     camera->requestCompleted.disconnect();
-    std::cout << "here 3" << std::endl;
-    // delete f_handler;
-    std::cout << "here 4" << std::endl;
     allocator->free(stream);
-    std::cout << "here 5" << std::endl;
     delete allocator;
     camera->release();
     camera.reset();
     cm->stop();
+
+    std::cout << "Exiting..." << std::endl;
 
     return 0;
 }
