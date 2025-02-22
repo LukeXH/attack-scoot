@@ -15,6 +15,10 @@
 using namespace libcamera;
 using namespace std::chrono_literals;
 
+#ifndef DEBUG_FLAG
+    #define DEBUG_FLAG false
+#endif
+
 // Globals
 static std::shared_ptr<Camera> camera;
 static std::shared_ptr<FrameBuffer> g_fbuffer0;
@@ -237,7 +241,7 @@ int main()
         camera->queueRequest(request.get());
 
 
-    for(size_t i_frame_grabs = 0; i_frame_grabs < 5; i_frame_grabs++)
+    for(size_t i_frame_grabs = 0; i_frame_grabs < 40; i_frame_grabs++)
     {
         for(size_t i_stall = 0; i_stall < 20; i_stall++)
         {
@@ -246,7 +250,7 @@ int main()
                 std::cout << "Exited waiting for frames after " << i_stall << " iters" << std::endl;
                 break;
             }
-            std::this_thread::sleep_for(100ms);
+            std::this_thread::sleep_for(50ms);
         }
 
         if(req_flag.ready())
@@ -277,8 +281,28 @@ int main()
                 }
             }
 
-            req_flag.reset();
+            // Save as CSV
+            if (DEBUG_FLAG)
+            {
+                for(int i_im = 0; i_im < image_vec.size(); ++i_im)
+                {
+                    std::ofstream im_file;
+                    std::string im_file_name = "/home/scoot/logs/imlog";
+                    im_file.open(im_file_name.append(std::to_string(10*i_frame_grabs + i_im)).append(".log"));
+                    for (int i=0; i < image_vec[i_im].rows; i++)
+                    {
+                        for (int j=0; j < image_vec.back().cols; j++)
+                        {
+                            im_file << std::to_string(image_vec[i_im].at(i,j)) << ",";
+                        }
+                        im_file << "\n";
+                    }
+                    im_file.close();
+                }
+            }
 
+            req_flag.reset();
+            image_vec.clear();
             for (std::unique_ptr<Request> &request : requests)
             {
                 request->reuse(Request::ReuseBuffers);
