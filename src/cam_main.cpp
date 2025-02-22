@@ -237,46 +237,59 @@ int main()
         camera->queueRequest(request.get());
 
 
-    for(size_t i_stall = 0; i_stall < 20; i_stall++)
+    for(size_t i_frame_grabs = 0; i_frame_grabs < 5; i_frame_grabs++)
     {
-        if(req_flag.ready())
-            break;
-        std::this_thread::sleep_for(100ms);
-    }
-
-    if(req_flag.ready())
-    {
-        std::cout << "We handled the requests!" << std::endl;
-        std::vector<Image8b> image_vec;
-        for(size_t i_buf = 0; i_buf < buffers.size(); ++i_buf) // Because using unique_ptr it seems like we cannot use "auto buffer : buffers"
+        for(size_t i_stall = 0; i_stall < 20; i_stall++)
         {
-            const FrameMetadata &metadata = buffers[i_buf]->metadata();// const FrameMetadata &metadata = buffer->metadata();
-    
-            std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence << " bytesused: ";
-    
-            unsigned int nplane = 0;
-            for (const FrameMetadata::Plane &plane : metadata.planes())
+            if(req_flag.ready())
             {
-                std::cout << plane.bytesused;
-                if (++nplane < metadata.planes().size()) std::cout << "/";
+                std::cout << "Exited waiting for frames after " << i_stall << " iters" << std::endl;
+                break;
             }
-    
-            // Now give information about the planes
-            for (const FrameBuffer::Plane &plane: buffers[i_buf]->planes() )// for (const FrameBuffer::Plane &plane: buffer->planes() )
-            {
-                std::cout << "\nThere is at least one plane of length: " << plane.length << std::endl;
-                void *memory = mmap(NULL, plane.length, PROT_READ | PROT_WRITE, MAP_SHARED, plane.fd.get(), 0);
-                libcamera::Span<uint8_t> image_raw(static_cast<uint8_t *>(memory), plane.length);
-                image_vec.emplace_back(480, 640*4, IM_8UC1, (uint8_t*)(image_raw.data()));
-                // Image8b image(480, 640*4, IM_8UC1, (uint8_t*)(image_raw.data())); // This formating works, cuz we have 4 channels, RGBA
-            }
+            std::this_thread::sleep_for(100ms);
         }
 
-        req_flag.reset();
-    }
-    else
-    {
-        std::cout << "We were unable to handle the request" << std::endl;
+        if(req_flag.ready())
+        {
+            std::cout << "We handled the requests!" << std::endl;
+            std::vector<Image8b> image_vec;
+            for(size_t i_buf = 0; i_buf < buffers.size(); ++i_buf) // Because using unique_ptr it seems like we cannot use "auto buffer : buffers"
+            {
+                const FrameMetadata &metadata = buffers[i_buf]->metadata();// const FrameMetadata &metadata = buffer->metadata();
+        
+                std::cout << " seq: " << std::setw(6) << std::setfill('0') << metadata.sequence << " bytesused: ";
+        
+                unsigned int nplane = 0;
+                for (const FrameMetadata::Plane &plane : metadata.planes())
+                {
+                    std::cout << plane.bytesused;
+                    if (++nplane < metadata.planes().size()) std::cout << "/";
+                }
+        
+                // Now give information about the planes
+                for (const FrameBuffer::Plane &plane: buffers[i_buf]->planes() )// for (const FrameBuffer::Plane &plane: buffer->planes() )
+                {
+                    std::cout << "\nThere is at least one plane of length: " << plane.length << std::endl;
+                    void *memory = mmap(NULL, plane.length, PROT_READ | PROT_WRITE, MAP_SHARED, plane.fd.get(), 0);
+                    libcamera::Span<uint8_t> image_raw(static_cast<uint8_t *>(memory), plane.length);
+                    image_vec.emplace_back(480, 640*4, IM_8UC1, (uint8_t*)(image_raw.data()));
+                    // Image8b image(480, 640*4, IM_8UC1, (uint8_t*)(image_raw.data())); // This formating works, cuz we have 4 channels, RGBA
+                }
+            }
+
+            req_flag.reset();
+
+            for (std::unique_ptr<Request> &request : requests)
+            {
+                request->reuse(Request::ReuseBuffers);
+                camera->queueRequest(request.get());
+            }
+        }
+        else
+        {
+            std::cout << "We were unable to handle the request, exiting" << std::endl;
+            break;
+        }
     }
     
     // // Wait for X milli-seconds to just see what we get
