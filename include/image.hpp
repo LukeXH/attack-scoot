@@ -95,8 +95,8 @@ public:
     @param col Index along the dimension 1
     */
 //    template<typename _Tp> _Tp& at(int row, int col);
-    uchar& at(int row, int col);
-    // uchar& at(int row, int col, int channel);
+    uchar* at(int row, int col);
+    uchar& at(int row, int col, int channel);
 
     enum { MAGIC_VAL  = 0x42FF0000, AUTO_STEP = 0}; //, CONTINUOUS_FLAG = CV_MAT_CONT_FLAG, SUBMATRIX_FLAG = CV_SUBMAT_FLAG };
     enum { MAGIC_MASK = 0xFFFF0000, TYPE_MASK = 0x00000FFF, DEPTH_MASK = 7 };
@@ -153,21 +153,25 @@ Image8b::Image8b(int _rows, int _cols, int _type, void* _data, size_t _step)
 }
 
 inline
-uchar& Image8b::at(int row, int col)
+uchar* Image8b::at(int row, int col)
 {
+    /**
+     * CAUTION, you can index out of the array with this method
+     */
     assert(dims <= 2);
     assert(data);
     // assert((unsigned)row < (unsigned)size.p[0]); // TODO Implement this check
     // assert((unsigned)(col * MAT_CN(im_type)) < (unsigned)(size.p[1] * MAT_CN(im_type))); // TODO Implement this check
     // assert(CV_ELEM_SIZE1(traits::Depth<_Tp>::value) == elemSize1()); // TODO Implement this check
-    return ((uchar*)(data + step.p[0] * row))[col];
+    // return ((uchar*)(data + step.p[0] * row))[col];
+    return ((uchar*)(data + step.p[0] * row + step.p[1]*col));
 }
 
-// inline
-// uchar& Image8b::at(int row, int col, int channel)
-// {
-//     assert(channel < MAT_CN(im_type));
-//     return at(row,col)[channel];
-// }
+inline
+uchar& Image8b::at(int row, int col, int channel)
+{
+    assert(channel < MAT_CN(im_type));
+    return at(row,col)[channel];
+}
 
 #endif /* IMAGE_H */

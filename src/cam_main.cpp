@@ -157,7 +157,7 @@ int main()
         camera->queueRequest(request.get());
 
 
-    for(size_t i_frame_grabs = 0; i_frame_grabs < 3; i_frame_grabs++)
+    for(size_t i_frame_grabs = 0; i_frame_grabs < 1; i_frame_grabs++)
     {
         for(size_t i_stall = 0; i_stall < 20; i_stall++)
         {
@@ -192,7 +192,7 @@ int main()
                     std::cout << "\nThere is at least one plane of length: " << plane.length << std::endl;
                     void *memory = mmap(NULL, plane.length, PROT_READ | PROT_WRITE, MAP_SHARED, plane.fd.get(), 0);
                     libcamera::Span<uint8_t> image_raw(static_cast<uint8_t *>(memory), plane.length);
-                    image_vec.emplace_back(streamConfig.size.height, streamConfig.size.width*4, IM_8UC1, (uint8_t*)(image_raw.data())); // This formating works, cuz we have 4 channels, RGBA
+                    // image_vec.emplace_back(streamConfig.size.height, streamConfig.size.width*4, IM_8UC1, (uint8_t*)(image_raw.data())); // This formating works, cuz we have 4 channels, RGBA
                     image_vec.emplace_back(streamConfig.size.height, streamConfig.size.width, IM_8UC4, (uint8_t*)(image_raw.data())); //
                     // Image8b image(480, 640*4, IM_8UC1, (uint8_t*)(image_raw.data())); // This formating works, cuz we have 4 channels, RGBA
                 }
