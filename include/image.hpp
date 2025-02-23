@@ -192,8 +192,8 @@ uchar* Image8b::getneighbor(const uchar* data_addr, int row, int col) const
 /**
  * Get the neighbor of the data at addr, offset by row and/or col
  */
-    uchar* neighbor_addr = ((uchar*)(data_addr + step.p[0] * row + step.p[1]*col));
-    if (neighbor_addr > dataend)
+    uchar* neighbor_addr = ((uchar*)(data_addr + step.p[0]*row + step.p[1]*col));
+    if (neighbor_addr > dataend || neighbor_addr < datastart) // TODO handle when at left and right edge of image
     {
         return nullptr;
     }
