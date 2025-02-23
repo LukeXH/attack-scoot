@@ -20,6 +20,10 @@ typedef unsigned char uchar;
 // from opencv2/core/cvdef.h
 #define MAT_CN_MASK          ((CN_MAX - 1) << CN_SHIFT)
 #define MAT_CN(flags)        ((((flags) & MAT_CN_MASK) >> CN_SHIFT) + 1)
+/** Size of each channel item,
+    0x28442211 = 0010 1000 0100 0100 0010 0010 0001 0001 ~ array of sizeof(arr_type_elem) */
+#define ELEM_SIZE1(type) ((0x28442211 >> MAT_DEPTH(type)*4) & 15) // CV_ELEM_SIZE1
+#define ELEM_SIZE(type) (MAT_CN(type)*ELEM_SIZE1(type)) // CV_ELEM_SIZE
 // Data type defines
 #define IM_8U   0 // CV_8U
 #define MAKETYPE(depth,cn) (MAT_DEPTH(depth) + (((cn)-1) << CN_SHIFT)) // CV_MAKETYPE
@@ -97,6 +101,8 @@ public:
 //    template<typename _Tp> _Tp& at(int row, int col);
     uchar* at(int row, int col);
     uchar& at(int row, int col, int channel);
+    const uchar& operator[](int i) const;
+    uchar* getneighbor(const uchar* data_addr, int row = 0, int col = 0) const;
 
     enum { MAGIC_VAL  = 0x42FF0000, AUTO_STEP = 0}; //, CONTINUOUS_FLAG = CV_MAT_CONT_FLAG, SUBMATRIX_FLAG = CV_SUBMAT_FLAG };
     enum { MAGIC_MASK = 0xFFFF0000, TYPE_MASK = 0x00000FFF, DEPTH_MASK = 7 };
@@ -127,11 +133,9 @@ Image8b::Image8b(int _rows, int _cols, int _type, void* _data, size_t _step)
     datastart((uchar*)_data), dataend(0), datalimit(0)
 {
     assert(data != NULL);
-
-    /** Size of each channel item,
-    0x28442211 = 0010 1000 0100 0100 0010 0010 0001 0001 ~ array of sizeof(arr_type_elem) */
-    size_t esz1 = (0x28442211 >> ((_type) & MAT_DEPTH_MASK)*4) & 15;
-    size_t esz = MAT_CN(_type) * esz1;
+    // size_t esz1 = (0x28442211 >> ((_type) & MAT_DEPTH_MASK)*4) & 15;
+    // size_t esz = MAT_CN(_type) * esz1;
+    size_t esz = ELEM_SIZE(_type), esz1 = ELEM_SIZE1(_type);
     size_t minstep = cols * esz;
     if( _step == AUTO_STEP )
     {
@@ -146,8 +150,8 @@ Image8b::Image8b(int _rows, int _cols, int _type, void* _data, size_t _step)
             throw std::runtime_error("ERROR::BadStep: Step must be a multiple of esz1");            
         }
     }
-    step[0] = _step;
-    step[1] = esz;
+    step[0] = _step; // Step between rows
+    step[1] = esz; // Step between elements (if you have 4 channels, stept 4)
     datalimit = datastart + _step * rows;
     dataend = datalimit - _step + minstep;
 }
@@ -172,6 +176,31 @@ uchar& Image8b::at(int row, int col, int channel)
 {
     assert(channel < MAT_CN(im_type));
     return at(row,col)[channel];
+}
+
+inline
+const uchar& Image8b::operator[](int i) const
+{
+/**
+ * Flat, linear indexing, returning a de-reffed pointer
+ */
+    return ((const uchar*)data)[i];
+}
+
+uchar* Image8b::getneighbor(const uchar* data_addr, int row, int col) const
+{
+/**
+ * Get the neighbor of the data at addr, offset by row and/or col
+ */
+    uchar* neighbor_addr = ((uchar*)(data_addr + step.p[0] * row + step.p[1]*col));
+    if (neighbor_addr > dataend)
+    {
+        return nullptr;
+    }
+    else
+    {
+        return neighbor_addr;
+    }
 }
 
 #endif /* IMAGE_H */
